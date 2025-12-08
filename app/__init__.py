@@ -26,5 +26,8 @@ def create_app(config_class=Config):
     from app.deals.routes import bp as deals_bp
     app.register_blueprint(deals_bp, url_prefix='/api')
     
+    from app.dealers.routes import bp as dealers_bp
+    app.register_blueprint(dealers_bp, url_prefix='/api')
+    
     return app
 

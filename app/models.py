@@ -107,6 +107,30 @@ class DealerBillItem(db.Model):
             'item_total': float(self.item_total) if self.item_total else 0
         }
 
+# ============ DEALER MANAGEMENT ============
+
+class Dealer(db.Model):
+    __tablename__ = 'dealers'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    phone = Column(String)
+    address = Column(Text)
+    khata_no = Column(String)
+    gstin = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': str(self.id),
+            'name': self.name,
+            'phone': self.phone,
+            'address': self.address,
+            'khata_no': self.khata_no,
+            'gstin': self.gstin,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
 # ============ INTEREST CALCULATION MODELS ============
 
 class Deal(db.Model):
