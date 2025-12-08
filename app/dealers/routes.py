@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Dealer
 import uuid
+from sqlalchemy import text
 
 bp = Blueprint('dealers', __name__)
 
@@ -44,8 +45,11 @@ def get_dealers():
 def get_dealer(dealer_id):
     """Get a specific dealer by ID"""
     try:
-        dealer = Dealer.query.get_or_404(dealer_id)
+        dealer_uuid = uuid.UUID(dealer_id)
+        dealer = Dealer.query.get_or_404(dealer_uuid)
         return jsonify(dealer.to_dict()), 200
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': 'Invalid dealer ID format'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 404
 
@@ -53,7 +57,8 @@ def get_dealer(dealer_id):
 def update_dealer(dealer_id):
     """Update a dealer"""
     try:
-        dealer = Dealer.query.get_or_404(dealer_id)
+        dealer_uuid = uuid.UUID(dealer_id)
+        dealer = Dealer.query.get_or_404(dealer_uuid)
         data = request.get_json()
         
         if 'name' in data:
@@ -69,6 +74,8 @@ def update_dealer(dealer_id):
         
         db.session.commit()
         return jsonify(dealer.to_dict()), 200
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': 'Invalid dealer ID format'}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
@@ -77,10 +84,13 @@ def update_dealer(dealer_id):
 def delete_dealer(dealer_id):
     """Delete a dealer"""
     try:
-        dealer = Dealer.query.get_or_404(dealer_id)
+        dealer_uuid = uuid.UUID(dealer_id)
+        dealer = Dealer.query.get_or_404(dealer_uuid)
         db.session.delete(dealer)
         db.session.commit()
         return jsonify({'message': 'Dealer deleted successfully'}), 200
+    except (ValueError, TypeError) as e:
+        return jsonify({'error': 'Invalid dealer ID format'}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
