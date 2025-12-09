@@ -143,6 +143,7 @@ class Item(db.Model):
 class Dealer(db.Model):
     __tablename__ = 'dealers'
     
+    dealer_id = Column(Integer, db.Sequence('dealer_id_seq'), unique=True, nullable=False, server_default=db.text("nextval('dealer_id_seq')"))
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     phone = Column(String)
@@ -152,6 +153,7 @@ class Dealer(db.Model):
     
     def to_dict(self):
         return {
+            'dealer_id': self.dealer_id,
             'id': str(self.id),
             'name': self.name,
             'phone': self.phone,

@@ -22,9 +22,16 @@ def run_migrations():
                 print(f"✗ Error initializing migrations: {e}")
                 print("Migrations folder may already exist or there's a configuration issue")
         
+        print("\nSyncing database (Pre-migration)...")
+        try:
+            upgrade()
+            print("✓ Database synced successfully")
+        except Exception as e:
+            print(f"Warning: Could not sync database: {e}")
+
         print("\nCreating migration...")
         try:
-            migrate(message="Sync database schema")
+            migrate(message="Add dealer_id auto-increment column")
             print("✓ Migration created successfully")
         except Exception as e:
             print(f"✗ Error creating migration: {e}")

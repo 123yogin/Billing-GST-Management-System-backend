@@ -42,12 +42,19 @@ def get_dealers():
 
 @bp.route('/dealers/<dealer_id>', methods=['GET'])
 def get_dealer(dealer_id):
-    """Get a specific dealer by ID"""
+    """Get a specific dealer by ID (integer or UUID)"""
     try:
-        dealer_uuid = uuid.UUID(dealer_id)
-        dealer = Dealer.query.get_or_404(dealer_uuid)
-        return jsonify(dealer.to_dict()), 200
-    except (ValueError, TypeError) as e:
+        # Try as integer ID first
+        try:
+            int_id = int(dealer_id)
+            dealer = Dealer.query.filter_by(dealer_id=int_id).first_or_404()
+            return jsonify(dealer.to_dict()), 200
+        except ValueError:
+            # Not an integer, try as UUID
+            dealer_uuid = uuid.UUID(dealer_id)
+            dealer = Dealer.query.get_or_404(dealer_uuid)
+            return jsonify(dealer.to_dict()), 200
+    except (ValueError, TypeError):
         return jsonify({'error': 'Invalid dealer ID format'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 404
