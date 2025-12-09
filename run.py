@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import FarmerBill, FarmerBillItem, DealerBill, DealerBillItem, Deal, Installment, Payment, PaymentAllocation, Dealer
+from app.models import FarmerBill, DealerBill, Item, Deal, Installment, Payment, PaymentAllocation, Dealer
 from dotenv import load_dotenv
 import os
 

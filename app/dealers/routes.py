@@ -21,7 +21,6 @@ def create_dealer():
             name=data['name'],
             phone=data.get('phone', ''),
             address=data.get('address', ''),
-            khata_no=data.get('khata_no', ''),
             gstin=data.get('gstin', '')
         )
         db.session.add(dealer)
@@ -67,8 +66,6 @@ def update_dealer(dealer_id):
             dealer.phone = data['phone']
         if 'address' in data:
             dealer.address = data['address']
-        if 'khata_no' in data:
-            dealer.khata_no = data['khata_no']
         if 'gstin' in data:
             dealer.gstin = data['gstin']
         

@@ -15,9 +15,21 @@ class FarmerBill(db.Model):
     other_expense = Column(Numeric(10, 2), default=0)
     discount = Column(Numeric(10, 2), default=0)
     final_total = Column(Numeric(10, 2), nullable=False)
+    
+    # New Invoice Fields
+    transport_mode = Column(String)
+    vehicle_number = Column(String)
+    supply_date = Column(DateTime)
+    place_of_supply = Column(String)
+    
+    receiver_address = Column(Text)
+    receiver_state = Column(String)
+    receiver_state_code = Column(String)
+    receiver_gstin = Column(String)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    items = relationship('FarmerBillItem', backref='farmer_bill', cascade='all, delete-orphan', lazy=True)
+    items = relationship('Item', backref='farmer_bill', cascade='all, delete-orphan', lazy=True)
     
     def to_dict(self):
         return {
@@ -27,29 +39,20 @@ class FarmerBill(db.Model):
             'customer_name': self.customer_name,
             'other_expense': float(self.other_expense) if self.other_expense else 0,
             'discount': float(self.discount) if self.discount else 0,
+            'discount': float(self.discount) if self.discount else 0,
             'final_total': float(self.final_total) if self.final_total else 0,
+            
+            'transport_mode': self.transport_mode,
+            'vehicle_number': self.vehicle_number,
+            'supply_date': self.supply_date.isoformat() if self.supply_date else None,
+            'place_of_supply': self.place_of_supply,
+            'receiver_address': self.receiver_address,
+            'receiver_state': self.receiver_state,
+            'receiver_state_code': self.receiver_state_code,
+            'receiver_gstin': self.receiver_gstin,
+            
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.items]
-        }
-
-class FarmerBillItem(db.Model):
-    __tablename__ = 'farmer_bill_items'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    farmer_bill_id = Column(UUID(as_uuid=True), ForeignKey('farmer_bills.id', ondelete='CASCADE'), nullable=False)
-    item = Column(Text, nullable=False)
-    weight = Column(Numeric(10, 2), nullable=False)
-    price = Column(Numeric(10, 2), nullable=False)
-    item_total = Column(Numeric(10, 2), nullable=False)
-    
-    def to_dict(self):
-        return {
-            'id': str(self.id),
-            'farmer_bill_id': str(self.farmer_bill_id),
-            'item': self.item,
-            'weight': float(self.weight) if self.weight else 0,
-            'price': float(self.price) if self.price else 0,
-            'item_total': float(self.item_total) if self.item_total else 0
         }
 
 class DealerBill(db.Model):
@@ -66,9 +69,21 @@ class DealerBill(db.Model):
     cgst = Column(Numeric(10, 2), default=0)
     sgst = Column(Numeric(10, 2), default=0)
     grand_total = Column(Numeric(10, 2), nullable=False)
+    
+    # New Invoice Fields
+    transport_mode = Column(String)
+    vehicle_number = Column(String)
+    supply_date = Column(DateTime)
+    place_of_supply = Column(String)
+    
+    receiver_address = Column(Text)
+    receiver_state = Column(String)
+    receiver_state_code = Column(String)
+    receiver_gstin = Column(String)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    items = relationship('DealerBillItem', backref='dealer_bill', cascade='all, delete-orphan', lazy=True)
+    items = relationship('Item', backref='dealer_bill', cascade='all, delete-orphan', lazy=True)
     
     def to_dict(self):
         return {
@@ -83,16 +98,29 @@ class DealerBill(db.Model):
             'cgst': float(self.cgst) if self.cgst else 0,
             'sgst': float(self.sgst) if self.sgst else 0,
             'grand_total': float(self.grand_total) if self.grand_total else 0,
+            
+            'transport_mode': self.transport_mode,
+            'vehicle_number': self.vehicle_number,
+            'supply_date': self.supply_date.isoformat() if self.supply_date else None,
+            'place_of_supply': self.place_of_supply,
+            'receiver_address': self.receiver_address,
+            'receiver_state': self.receiver_state,
+            'receiver_state_code': self.receiver_state_code,
+            'receiver_gstin': self.receiver_gstin,
+            
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.items]
         }
 
-class DealerBillItem(db.Model):
-    __tablename__ = 'dealer_bill_items'
+class Item(db.Model):
+    __tablename__ = 'items'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    dealer_bill_id = Column(UUID(as_uuid=True), ForeignKey('dealer_bills.id', ondelete='CASCADE'), nullable=False)
+    farmer_bill_id = Column(UUID(as_uuid=True), ForeignKey('farmer_bills.id', ondelete='CASCADE'), nullable=True)
+    dealer_bill_id = Column(UUID(as_uuid=True), ForeignKey('dealer_bills.id', ondelete='CASCADE'), nullable=True)
     item = Column(Text, nullable=False)
+    hsn_code = Column(String)
+    quantity_bags = Column(Integer, default=0)
     weight = Column(Numeric(10, 2), nullable=False)
     price = Column(Numeric(10, 2), nullable=False)
     item_total = Column(Numeric(10, 2), nullable=False)
@@ -100,8 +128,11 @@ class DealerBillItem(db.Model):
     def to_dict(self):
         return {
             'id': str(self.id),
-            'dealer_bill_id': str(self.dealer_bill_id),
+            'farmer_bill_id': str(self.farmer_bill_id) if self.farmer_bill_id else None,
+            'dealer_bill_id': str(self.dealer_bill_id) if self.dealer_bill_id else None,
             'item': self.item,
+            'hsn_code': self.hsn_code,
+            'quantity_bags': self.quantity_bags,
             'weight': float(self.weight) if self.weight else 0,
             'price': float(self.price) if self.price else 0,
             'item_total': float(self.item_total) if self.item_total else 0
@@ -116,7 +147,6 @@ class Dealer(db.Model):
     name = Column(String, nullable=False)
     phone = Column(String)
     address = Column(Text)
-    khata_no = Column(String)
     gstin = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -126,7 +156,6 @@ class Dealer(db.Model):
             'name': self.name,
             'phone': self.phone,
             'address': self.address,
-            'khata_no': self.khata_no,
             'gstin': self.gstin,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }

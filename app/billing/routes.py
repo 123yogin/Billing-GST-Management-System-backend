@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from app import db
-from app.models import FarmerBill, FarmerBillItem, DealerBill, DealerBillItem
+from app.models import FarmerBill, DealerBill, Item
 from app.utils.calculations import calculate_farmer_bill_totals, calculate_dealer_bill_totals
 from app.utils.pdf_generator import generate_farmer_bill_pdf, generate_dealer_bill_pdf
 from datetime import datetime
@@ -33,16 +33,28 @@ def create_farmer_bill():
             customer_name=data['customer_name'],
             other_expense=other_expense,
             discount=discount,
-            final_total=totals['final_total']
+            final_total=totals['final_total'],
+            
+            # New Fields
+            transport_mode=data.get('transport_mode'),
+            vehicle_number=data.get('vehicle_number'),
+            supply_date=datetime.strptime(data['supply_date'], '%Y-%m-%d') if data.get('supply_date') else None,
+            place_of_supply=data.get('place_of_supply'),
+            receiver_address=data.get('receiver_address'),
+            receiver_state=data.get('receiver_state'),
+            receiver_state_code=data.get('receiver_state_code'),
+            receiver_gstin=data.get('receiver_gstin')
         )
         db.session.add(bill)
         db.session.flush()
         
         # Create items
         for item_data in items_data:
-            item = FarmerBillItem(
+            item = Item(
                 farmer_bill_id=bill.id,
                 item=item_data['item'],
+                hsn_code=item_data.get('hsn_code'),
+                quantity_bags=item_data.get('quantity_bags', 0),
                 weight=item_data['weight'],
                 price=item_data['price'],
                 item_total=item_data['item_total']
@@ -147,18 +159,29 @@ def create_dealer_bill():
             discount=discount,
             gst_percentage=gst_percentage,
             gst_amount=totals['gst_amount'],
-            cgst=totals['cgst'],
             sgst=totals['sgst'],
-            grand_total=totals['grand_total']
+            grand_total=totals['grand_total'],
+            
+            # New Fields
+            transport_mode=data.get('transport_mode'),
+            vehicle_number=data.get('vehicle_number'),
+            supply_date=datetime.strptime(data['supply_date'], '%Y-%m-%d') if data.get('supply_date') else None,
+            place_of_supply=data.get('place_of_supply'),
+            receiver_address=data.get('receiver_address'),
+            receiver_state=data.get('receiver_state'),
+            receiver_state_code=data.get('receiver_state_code'),
+            receiver_gstin=data.get('receiver_gstin')
         )
         db.session.add(bill)
         db.session.flush()
         
         # Create items
         for item_data in items_data:
-            item = DealerBillItem(
+            item = Item(
                 dealer_bill_id=bill.id,
                 item=item_data['item'],
+                hsn_code=item_data.get('hsn_code'),
+                quantity_bags=item_data.get('quantity_bags', 0),
                 weight=item_data['weight'],
                 price=item_data['price'],
                 item_total=item_data['item_total']
