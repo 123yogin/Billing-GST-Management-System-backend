@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file
 from app import db
-from app.models import FarmerBill, DealerBill, Item
+from app.models import FarmerBill, DealerBill, FarmerBillItem, DealerBillItem
 from app.utils.calculations import calculate_farmer_bill_totals, calculate_dealer_bill_totals
 from app.utils.pdf_generator import generate_farmer_bill_pdf, generate_dealer_bill_pdf
 from datetime import datetime
@@ -50,7 +50,7 @@ def create_farmer_bill():
         
         # Create items
         for item_data in items_data:
-            item = Item(
+            item = FarmerBillItem(
                 farmer_bill_id=bill.id,
                 item=item_data['item'],
                 hsn_code=item_data.get('hsn_code'),
@@ -177,7 +177,7 @@ def create_dealer_bill():
         
         # Create items
         for item_data in items_data:
-            item = Item(
+            item = DealerBillItem(
                 dealer_bill_id=bill.id,
                 item=item_data['item'],
                 hsn_code=item_data.get('hsn_code'),
