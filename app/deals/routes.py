@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Deal, Installment, Payment, PaymentAllocation
-from app.utils.interest_calculations import update_accrued_interest, allocate_payment_to_installments
+from app.utils.interest_calculations import update_accrued_interest, allocate_payment_to_installments, allocate_payment_across_deals
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
@@ -62,6 +62,7 @@ def get_deals():
         customer_name = request.args.get('customer_name')
         deal_id = request.args.get('deal_id')
         status = request.args.get('status')
+        dealer_id = request.args.get('dealer_id')
         
         query = Deal.query
         
@@ -75,6 +76,8 @@ def get_deals():
             query = query.filter(Deal.deal_id == int(deal_id))
         if status:
             query = query.filter(Deal.status == status)
+        if dealer_id:
+            query = query.filter(Deal.dealer_id == dealer_id)
         
         deals = query.order_by(Deal.deal_date.desc()).all()
         
@@ -174,7 +177,11 @@ def create_installments(deal_id):
 
 @bp.route('/deals/<int:deal_id>/payments', methods=['POST'])
 def add_payment(deal_id):
-    """Add a payment and allocate it to installments"""
+    """Add a payment and allocate it to installments.
+    
+    If cross_deal flag is set to true, payment will be allocated across all active deals
+    for the same dealer and customer, with oldest deal getting priority first.
+    """
     try:
         deal = Deal.query.get_or_404(deal_id)
         data = request.get_json()
@@ -182,19 +189,103 @@ def add_payment(deal_id):
         payment_amount = data['amount']
         payment_date = datetime.strptime(data['payment_date'], '%Y-%m-%d').date()
         
-        # Allocate payment
-        result = allocate_payment_to_installments(deal.deal_id, payment_amount, payment_date)
+        # Check if cross-deal allocation is requested
+        cross_deal = data.get('cross_deal', False)
+        
+        if cross_deal and deal.dealer_id and deal.customer_name:
+            # Allocate across all deals for this dealer and customer
+            result = allocate_payment_across_deals(
+                deal.dealer_id, 
+                deal.customer_name, 
+                payment_amount, 
+                payment_date
+            )
+            
+            if result is None:
+                return jsonify({'error': 'Failed to allocate payment across deals'}), 400
+            
+            # Get all affected deals
+            deals = Deal.query.filter(
+                Deal.dealer_id == deal.dealer_id,
+                Deal.customer_name == deal.customer_name,
+                Deal.status == 'active'
+            ).all()
+            
+            # Refresh all deals to get updated data
+            for d in deals:
+                db.session.refresh(d)
+            
+            return jsonify({
+                'message': 'Cross-deal payment added successfully',
+                'allocation': result,
+                'deals': [d.to_dict() for d in deals]
+            }), 201
+        else:
+            # Original single-deal allocation
+            result = allocate_payment_to_installments(deal.deal_id, payment_amount, payment_date)
+            
+            if result is None:
+                return jsonify({'error': 'Failed to allocate payment'}), 400
+            
+            # Refresh deal to get updated data
+            db.session.refresh(deal)
+            
+            return jsonify({
+                'message': 'Payment added successfully',
+                'allocation': result,
+                'deal': deal.to_dict()
+            }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+
+@bp.route('/deals/payments/cross-deal', methods=['POST'])
+def add_cross_deal_payment():
+    """
+    Add a payment that can be allocated across multiple deals for the same dealer and customer.
+    Priority: Oldest deal first (5% deal before 10% deal).
+    
+    Request body:
+    {
+        "dealer_id": "uuid-of-dealer",
+        "customer_name": "Customer Name",
+        "amount": 15000,
+        "payment_date": "2024-01-15"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        dealer_id = data.get('dealer_id')
+        customer_name = data.get('customer_name')
+        payment_amount = data['amount']
+        payment_date = datetime.strptime(data['payment_date'], '%Y-%m-%d').date()
+        
+        if not dealer_id or not customer_name:
+            return jsonify({'error': 'dealer_id and customer_name are required'}), 400
+        
+        # Allocate payment across deals
+        result = allocate_payment_across_deals(dealer_id, customer_name, payment_amount, payment_date)
         
         if result is None:
-            return jsonify({'error': 'Failed to allocate payment'}), 400
+            return jsonify({'error': 'No active deals found for this dealer and customer'}), 400
         
-        # Refresh deal to get updated data
-        db.session.refresh(deal)
+        # Get all affected deals
+        deals = Deal.query.filter(
+            Deal.dealer_id == dealer_id,
+            Deal.customer_name == customer_name,
+            Deal.status == 'active'
+        ).all()
+        
+        # Refresh all deals to get updated data
+        for deal in deals:
+            db.session.refresh(deal)
         
         return jsonify({
-            'message': 'Payment added successfully',
+            'message': 'Cross-deal payment added successfully',
             'allocation': result,
-            'deal': deal.to_dict()
+            'deals': [deal.to_dict() for deal in deals]
         }), 201
     except Exception as e:
         db.session.rollback()
