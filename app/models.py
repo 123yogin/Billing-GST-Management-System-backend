@@ -4,7 +4,13 @@ from sqlalchemy import Column, String, Date, Numeric, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Sequence
 from datetime import datetime
+from config import Config
 import uuid
+
+
+def get_ist_datetime():
+    """Get current datetime in IST timezone for model defaults"""
+    return datetime.now(Config.IST_TIMEZONE)
 
 class FarmerBill(db.Model):
     __tablename__ = 'farmer_bills'
@@ -28,7 +34,7 @@ class FarmerBill(db.Model):
     receiver_state_code = Column(String)
     receiver_gstin = Column(String)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     items = relationship('FarmerBillItem', backref='farmer_bill', cascade='all, delete-orphan', lazy=True)
     
@@ -82,7 +88,7 @@ class DealerBill(db.Model):
     receiver_state_code = Column(String)
     receiver_gstin = Column(String)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     items = relationship('DealerBillItem', backref='dealer_bill', cascade='all, delete-orphan', lazy=True)
     
@@ -172,7 +178,7 @@ class Dealer(db.Model):
     phone = Column(String)
     address = Column(Text)
     gstin = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     def to_dict(self):
         return {
@@ -197,7 +203,7 @@ class Deal(db.Model):
     interest_percentage = Column(Numeric(5, 2), default=0)
     deal_date = Column(Date, nullable=False)
     status = Column(String, default='active')  # 'active', 'closed'
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     installments = relationship('Installment', backref='deal', cascade='all, delete-orphan', lazy=True, order_by='Installment.due_date')
     payments = relationship('Payment', backref='deal', cascade='all, delete-orphan', lazy=True, order_by='Payment.payment_date')
@@ -226,7 +232,7 @@ class Installment(db.Model):
     percentage = Column(Numeric(5, 2), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     pending_amount = Column(Numeric(10, 2), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     payment_allocations = relationship('PaymentAllocation', backref='installment', cascade='all, delete-orphan', lazy=True)
     
@@ -251,7 +257,7 @@ class Payment(db.Model):
     amount = Column(Numeric(10, 2), nullable=False)
     type = Column(String, default='installment')  # 'installment', 'interest', 'principal'
     remark = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     allocations = relationship('PaymentAllocation', backref='payment', cascade='all, delete-orphan', lazy=True)
     
@@ -275,7 +281,7 @@ class PaymentAllocation(db.Model):
     installment_id = Column(UUID(as_uuid=True), ForeignKey('installments.id', ondelete='CASCADE'), nullable=False)
     allocated_amount = Column(Numeric(10, 2), nullable=False)
     interest_amount = Column(Numeric(10, 2), default=0)  # Realized interest for this allocation
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     def to_dict(self):
         return {
@@ -295,7 +301,7 @@ class Item(db.Model):
     name = Column(String, nullable=False)
     hsn_code = Column(String)
     price = Column(Numeric(10, 2), default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_ist_datetime)
     
     def to_dict(self):
         return {

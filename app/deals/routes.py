@@ -100,13 +100,17 @@ def get_deal(deal_id):
     try:
         deal = Deal.query.get_or_404(deal_id)
         
-        # Update accrued interest before returning
-        update_accrued_interest(deal.deal_id)
+        # Calculate accrued interest before returning
+        accrued_interest = update_accrued_interest(deal.deal_id)
         
         # Refresh to get updated data
         db.session.refresh(deal)
         
-        return jsonify(deal.to_dict()), 200
+        # Get deal dict and add accrued interest
+        deal_dict = deal.to_dict()
+        deal_dict['accrued_interest'] = float(accrued_interest)
+        
+        return jsonify(deal_dict), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 404
 
